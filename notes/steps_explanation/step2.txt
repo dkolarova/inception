@@ -1,0 +1,37 @@
+WordPress
+
+DockerFile
+Base image
+FROM debian:bullseye
+
+Same rule as MariaDB: stable OS only
+
+1. Install PHP runtime = php-fpm php-mysql
+
+This allows:
+running PHP code
+connecting to MariaDB
+
+2. Install tools
+curl → download files
+wget → fetch WordPress
+tar → extract files
+mariadb-client → test DB connection
+
+3. WP-CLI = wp
+This is VERY important, It lets us to:
+- install WordPress automatically
+- configure admin/user via script
+
+4. Port 9000 = EXPOSE 9000
+- php-fpm listens here
+- NGINX will connect to it
+
+5. Startup script = CMD ["/init.sh"]
+Same pattern as MariaDB:
+
+container boots
+script configures everything
+
+“The WordPress container installs and configures a PHP-based CMS automatically,
+connects it to a MariaDB database using environment variables,and runs PHP-FPM to serve dynamic content to NGINX.

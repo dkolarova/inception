@@ -1,0 +1,98 @@
+MariaDB
+
+Its job in the full system:
+WordPress → asks for data → MariaDB stores/returns it
+
+So MariaDB is:
+the data storage layer
+the “memory” of your website
+
+Dockerfile ->
+
+. Installs database software = RUN apt-get install mariadb-server
+Meaning:
+We are creating a machine that can run a database server
+
+. Copies configuration = COPY my.cnf /etc/mysql/my.cnf
+Meaning:
+We are customizing how the database behaves.
+
+Example: allow external connections (Docker network)
+
+. Adds init script = COPY init.sh /init.sh
+Meaning:
+We define what happens when the container starts.
+
+. Starts script = CMD ["/init.sh"]
+Meaning:
+
+When container starts → it automatically configures itself.
+
+init.sh runs →
+	start MariaDB →
+	create DB →
+	create user →
+	set permissions →
+	shutdown temporary setup →
+	start real server
+
+1. Start SQL session = mysql <<EOF
+
+Meaning:
+Open MariaDB command interface
+Feed it SQL commands until EOF
+
+2. Create database = CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE};
+What it does:
+Creates a database for WordPress
+Only if it doesn’t already exist
+ 
+Why this matters:
+WordPress needs a database to store:
+users
+posts
+settings
+
+3. Create application user = CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
+What it does:
+Creates a non-root user
+Password is taken from .env
+'%' means: allow connection from ANY container
+
+Why this is important:
+WordPress will NOT use root
+It uses this restricted user instead
+
+✔ safer
+✔ follows best practice
+
+4. Give permissions = GRANT ALL PRIVILEGES ON ${MYSQL_DATABASE}.* TO '${MYSQL_USER}'@'%';
+What it means:
+“Allow this user to fully control ONLY this database”
+
+So:
+can read data
+can write data
+cannot touch system databases
+
+5. Secure root user =	ALTER USER 'root'@'localhost'
+						IDENTIFIED VIA mysql_native_password
+						USING PASSWORD('${MYSQL_ROOT_PASSWORD}');
+What it does:
+Changes root authentication method
+forces password login
+removes default socket login behavior
+
+Why this matters:
+	Without this:
+root login might not work via password
+Docker setup becomes inconsistent
+
+6. Apply changes = FLUSH PRIVILEGES;
+What it does:
+reloads permissions immediately
+
+Without this, changes may not apply
+
+7. End SQL block = EOF
+Closes the SQL input stream

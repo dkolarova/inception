@@ -1,0 +1,55 @@
+NGINX 
+"Secure front door"
+
+Browser
+   ↓ HTTPS (443)
+NGINX
+   ↓ FastCGI (9000)
+WordPress (php-fpm)
+   ↓ SQL (3306)
+MariaDB
+
+
+Dockerfile
+
+1. Installs NGINX = nginx
+web server software
+
+2. Installs OpenSSL = openssl
+used to generate HTTPS certificate
+
+3. Creates SSL certificate = openssl req -x509
+creates:
+	cert.pem
+	key.pem
+required for HTTPS
+
+4. Copies config = nginx.conf
+controls routing behavior
+
+5. Runs NGINX in foreground = nginx -g "daemon off;"
+REQUIRED for Docker and avoids infinite loop hacks
+
+
+NGINX conf
+
+- HTTPS setup = listen 443 ssl;
+Forces secure connection
+No HTTP allowed
+
+- SSL certificate = ssl_certificate
+encrypts traffic between browser and server
+
+- TLS restriction = TLSv1.2 TLSv1.3
+older insecure versions blocked
+
+- Routing logic = try_files $uri /index.php
+if file exists → serve it
+otherwise → WordPress handles it
+
+- PHP forwarding = fastcgi_pass wordpress:9000;
+sends PHP requests to WordPress container
+
+wordpress:9000
+-> NOT localhost
+-> Docker DNS resolves service names
